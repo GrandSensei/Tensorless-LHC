@@ -1,0 +1,501 @@
+This file contains all the pieces of code that I had to remove or abandon due to poor logic.
+I have kept them here to remind of the mistakes I throughout the process.
+
+
+This is a personal project hence I do not rely on using github like I would when working with friends at hackathons
+
+
+
+
+
+My major reason for removing this was that I wanted the test data independent of the neural engine.
+An analogy of not leaking the exam paper to my student before conducting the test. Call me dumb idc.
+
+    public void setTestData(List<List<Float>> testData) {
+        this.testData = testData;
+    }
+public float[][] getTrainingData() {
+        return trainingData;
+    }
+    public List<List<Float>> getTestData() {
+        return testData;
+    }
+
+
+
+    public void backpropagation(int trainingDataIndex, float learningRate){
+        float[] trainingDataPoint = trainingData[trainingDataIndex];
+        //the 0th index of this is the label, this is how we will fill up the initial target value.
+        //Filling up the initial target layer using the labels
+        for(int x=0;x<OUTPUT_SIZE;++x){
+            if (x==trainingDataPoint[0]) neuralNetwork.getNeuron(4,x).setActivation(1);
+            else neuralNetwork.getNeuron(4,x).setActivation(0);
+        }
+
+        //instead of the above mess use a
+        //gets me into the middle layer between the targeted layer and its previous layer
+        for(int midLayer=0;midLayer<neuralNetwork.getNeurons().size()-2;++midLayer){
+            for(int neuronPreviousLayer=0;neuronPreviousLayer<neuralNetwork.getNeurons().get(midLayer+1).size();++neuronPreviousLayer){
+                for (int neuronTargetLayer=0;neuronTargetLayer<neuralNetwork.getNeurons().get(midLayer).size();++neuronTargetLayer){
+                    //neuron in the target layer will always have the same no of inputs as the targeted layer
+                    float neuronInTargetLayer= neuralNetwork.getNeurons().getLast().get(neuronTargetLayer).getActivation();
+                    float neuronInTargetedLayer= neuralNetwork.getNeurons().get(midLayer+1).get(neuronTargetLayer).getActivation();
+                    float neuronInPreviousLayer= neuralNetwork.getNeuron(midLayer,neuronPreviousLayer).getActivation();
+                    float sigDerivative= (float) (Math.exp(-neuralNetwork.getNeuron(midLayer+1,neuronTargetLayer).getVal())/(1+Math.exp(-neuralNetwork.getNeuron(midLayer+1,neuronTargetLayer).getVal())));
+                    float gradient= (neuronInTargetedLayer- neuronInTargetLayer) * neuronInPreviousLayer*sigDerivative*learningRate;
+                    neuralNetwork.getWeights().setWeight(midLayer,neuronTargetLayer,neuronPreviousLayer,gradient);
+                }
+            }
+
+            //now let's empty the target layer and fill it up with new inputs
+            if(neuralNetwork.getNeurons().get(midLayer+1).size()> neuralNetwork.getNeurons().getLast().size()){
+                //add the extra neurons
+                for (int x=0;x< neuralNetwork.getNeurons().getLast().size()- neuralNetwork.getNeurons().get(midLayer+1).size();++x){
+                    //adds a new neuron to the target layer
+                    neuralNetwork.addNeuron(neuralNetwork.getNeurons().size(),new Neuron());
+                }
+            }else if(neuralNetwork.getNeurons().get(midLayer+1).size()< neuralNetwork.getNeurons().getLast().size()){
+                //remove the extra neurons
+                for (int x=0;x< neuralNetwork.getNeurons().get(midLayer+1).size()- neuralNetwork.getNeurons().getLast().size();++x){
+                    //removes a neuron from the target layer
+                    neuralNetwork.getNeurons().removeLast();
+                }
+            }
+
+            // over here I should be adding the neurons of the next layer as it goes back..
+            for (int x=0;x< neuralNetwork.getNeurons().getLast().size();++x){
+                neuralNetwork.setNeuron(neuralNetwork.getNeurons().size()-1,x,0);
+            }
+        }
+
+
+
+    }
+
+
+
+public void randomizeWeights() {
+        for (List<List<Float>> weight : weights) {
+            for (List<Float> floats : weight) {
+                floats.replaceAll(w -> (float) Math.random() * 2 - 1);
+            }
+        }
+    }
+
+
+//    public void addWeightsBetweenLayers(int layer1,int layer2) {
+//        if(layer1<layer2 || layer2 >= neurons.size()) return;
+//        int midLayer = (layer1+layer2)/2;
+//        for(int i=0;i<neurons.get(layer1).size();++i) {
+//           for(int j=0;j<neurons.get(layer2).size();++j) {
+//               weights.setWeight(midLayer,i,j,0);
+//           }
+//        }
+//
+//    }
+
+
+//    public static float[][] loadPhysicsData(String path, int maxRows) throws Exception {
+//        List<float[]> rawDataList = new ArrayList<>();
+//        String line;
+//
+//        // PASS 1: Load raw data and compute statistics for normalization
+//        List<Float> labels = new ArrayList<>();
+//        List<float[]> rawFeatures = new ArrayList<>();
+//
+//        try(BufferedReader br = new BufferedReader(new FileReader(path))){
+//            br.readLine(); // Skip header
+//            int count = 0;
+//            while((line = br.readLine()) != null){
+//                if(maxRows != -1 && count >= maxRows) break;
+//                String[] values = line.split(",");
+//
+//                // FIXED LABEL ENCODING
+//                // 0 = Electron, 3 (or any non-zero) = Gamma
+//                float rawLabel = Float.parseFloat(values[0]);
+//                //float binaryLabel = (rawLabel == 0.0f) ? 0.0f : 1.0f; // 0=Electron, 1=Gamma
+//                if (rawLabel < 0 || rawLabel > 3) {
+//                    System.out.println("Warning: Unknown label " + rawLabel + " found!");
+//                }
+//
+//                labels.add(rawLabel);
+//
+//                // Load the 10 raw layer values
+//                float[] features = new float[values.length - 1];
+//                for(int i = 1; i < values.length; i++){
+//                    features[i-1] = Float.parseFloat(values[i]);
+//                }
+//                rawFeatures.add(features);
+//                count++;
+//            }
+//        } catch (Exception e){
+//            e.printStackTrace();
+//            throw new Exception("Error reading file");
+//        }
+//
+//        // PASS 2: Compute normalization statistics for raw features
+//        int numFeatures = rawFeatures.get(0).length;
+//        float[] mins = new float[numFeatures];
+//        float[] maxs = new float[numFeatures];
+//
+//        for(int i = 0; i < numFeatures; i++){
+//            mins[i] = Float.MAX_VALUE;
+//            maxs[i] = Float.MIN_VALUE;
+//        }
+//
+//        for(float[] features : rawFeatures){
+//            for(int i = 0; i < numFeatures; i++){
+//                if(features[i] < mins[i]) mins[i] = features[i];
+//                if(features[i] > maxs[i]) maxs[i] = features[i];
+//            }
+//        }
+//
+//        // PASS 3: Normalize and engineer features
+//        float[][] dataArray = new float[rawFeatures.size()][numFeatures + 3]; // +3 for label, total, ratio
+//
+//        for(int row = 0; row < rawFeatures.size(); row++){
+//            float[] features = rawFeatures.get(row);
+//            float[] normalizedFeatures = new float[numFeatures];
+//
+//            // Normalize each feature
+//            for(int i = 0; i < numFeatures; i++){
+//                float range = maxs[i] - mins[i];
+//                if(range > 0.0001f){
+//                    normalizedFeatures[i] = (features[i] - mins[i]) / range;
+//                } else {
+//                    normalizedFeatures[i] = 0.0f;
+//                }
+//            }
+//
+//            // Compute engineered features AFTER normalization
+//            float totalEnergy = 0.0f;
+//            for(float val : normalizedFeatures){
+//                totalEnergy += val;
+//            }
+//
+//            float ratio = 0.0f;
+//            if(totalEnergy > 0.0001f){
+//                ratio = normalizedFeatures[0] / totalEnergy; // Layer 0 / Total
+//            }
+//
+//            // Build final row: [label, normalized_features..., total_energy, ratio]
+//            dataArray[row][0] = labels.get(row);
+//            for(int i = 0; i < numFeatures; i++){
+//                dataArray[row][i + 1] = normalizedFeatures[i];
+//            }
+//            dataArray[row][numFeatures + 1] = totalEnergy / numFeatures; // Normalize total energy
+//            dataArray[row][numFeatures + 2] = ratio;
+//        }
+//
+//        System.out.println("Data Loaded & Normalized. Features: " + (numFeatures + 2));
+//        System.out.println("Class distribution:");
+//        long electrons = labels.stream().filter(l -> l == 0.0f).count();
+//        long gammas = labels.stream().filter(l -> l == 1.0f).count();
+//        System.out.println("  Electrons (0): " + electrons);
+//        System.out.println("  Gammas (1): " + gammas);
+//
+//        return dataArray;
+//    }
+
+//    public static float[][] loadPhysicsData(String path, int maxRows) throws Exception {
+//        List<float[]> data = new ArrayList<>();
+//        String line;
+//
+//        try(BufferedReader br = new BufferedReader(new FileReader(path))){
+//            br.readLine(); // Skip header
+//            int count = 0;
+//            while((line = br.readLine()) != null){
+//                if(maxRows != -1 && count >= maxRows) break;
+//                String[] values = line.split(",");
+//
+//                // --- 1. BINARY LABEL NORMALIZATION ---
+//                // We assume the file contains only Electrons (usually 0) and Gammas (usually 3 or 22)
+//                float rawLabel = Float.parseFloat(values[0]);
+//
+//                // Force into 0 vs 1
+//                // If raw is 0, stay 0. If raw is ANYTHING else (3, 22, 1), become 1.
+//                float binaryLabel = (rawLabel == 0.0f) ? 0.0f : 1.0f;
+//
+//                float[] row = new float[values.length + 2];
+//                row[0] = binaryLabel;
+//
+//                float totalEnergySum = 0;
+//                float layer0RealValue = 0;
+//
+//                // --- 2. LOAD RAW LAYERS (Un-blindfolded) ---
+//                for(int i=1; i<values.length; ++i){
+//                    float val = Float.parseFloat(values[i]) / 500.0f;
+//
+//                    // Capture Layer 0 for the Ratio feature
+//                    if (i == 1) layer0RealValue = val;
+//
+//                    // Keep the raw data (Network sees the full shower shape)
+//                    row[i] = val;
+//                    //row[i] = 0.0f;
+//                    totalEnergySum += val;
+//                }
+//
+//                // --- 3. FEATURE ENGINEERING ---
+//                // Feature 11: Total Energy
+//                row[values.length] = totalEnergySum;
+//
+//                // Feature 12: The "Ratio" (Electron vs Gamma Detector)
+//                if (totalEnergySum > 0) {
+//                    float ratio = layer0RealValue / totalEnergySum;
+//                    // Keep the scaling! (x20)
+//                    row[values.length + 1] = (ratio - 0.88f);
+//                } else {
+//                    row[values.length + 1] = 0.0f;
+//                }
+//                data.add(row);
+//                count++;
+//            }
+//        } catch (Exception e){
+//            e.printStackTrace();
+//            throw new Exception("Error reading file");
+//        }
+//
+//        float[][] dataArray = new float[data.size()][];
+//        return data.toArray(dataArray);
+//    }
+
+
+
+public class ModelEvaluator {
+
+    public static void main(String[] args) throws Exception {
+        // 1. Load the Trained Brain
+        System.out.println("Loading Model...");
+        NeuralEngine brain = NeuralEngine.loadModel("cern_model.bin");
+
+        // 2. Load the Exam Questions (Data)
+        // Use the same normalization (120.0f) you used for training!
+        float[][] testData = ExcelParse.loadPhysicsData("data/training_data2.csv", 4000);
+
+        System.out.println("Evaluating " + testData.length + " events...");
+
+        // 2. Create a 4x4 Confusion Matrix
+        // Rows = Actual Particle, Columns = Predicted Particle
+        int[][] matrix = new int[4][4];
+        String[] names = {"Elec ", "Pion ", "Muon ", "Gamma"};
+
+        // 3. The Counters
+        int trueElectron = 0;  // Correctly ID'd Electron
+        int falsePion = 0;     // Electron wrongly called a Pion (Missed VIP)
+        int truePion = 0;      // Correctly ID'd Pion
+        int falseElectron = 0; // Pion wrongly called an Electron (Contamination)
+
+        // 3. The Test Loop
+        for (float[] row : testData) {
+            // Extract the 10 inputs (Skip label at index 0)
+            float[] inputs = new float[10];
+            System.arraycopy(row, 1, inputs, 0, 10);
+
+            int actual = (int) row[0]; // 0, 1, 2, or 3
+
+            // Predict
+            brain.setInput(inputs);
+            brain.forwardPass();
+            int predicted = brain.getPredictedDigit();
+
+            // Safety check to prevent crashing if label is weird
+            if(actual >= 0 && actual < 4 && predicted >= 0 && predicted < 4) {
+                matrix[actual][predicted]++;
+            }
+        }
+
+        // 4. Print the Matrix
+        System.out.println("\n--- 4-PARTICLE CONFUSION MATRIX ---");
+        // Print Header
+        System.out.print("           ");
+        for (String n : names) System.out.print(String.format("[%5s] ", n.trim()));
+        System.out.println();
+
+        // Print Rows
+        for (int i = 0; i < 4; i++) {
+            System.out.print("Actual " + names[i] + ": ");
+            for (int j = 0; j < 4; j++) {
+                // Format number to be aligned
+                String val = String.format("%6d", matrix[i][j]);
+
+                // Highlight correct guesses (Diagonal) with brackets
+                if (i == j) System.out.print("[" + val + "] ");
+                else        System.out.print(" " + val + "  ");
+            }
+            System.out.println();
+        }
+
+        // 5. Calculate Accuracy
+        int correct = matrix[0][0] + matrix[1][1] + matrix[2][2] + matrix[3][3];
+        double accuracy = (double) correct / testData.length * 100;
+        System.out.println("\nOverall Accuracy: " + String.format("%.2f", accuracy) + "%");
+    }
+
+    // Helper to make the table look nice
+    private static String pad(int n) {
+        return String.format("%4d", n);
+    }
+}
+
+
+//    public void backpropagate(float[] targets, float learningRate){
+//        List<List<Neuron>> layers = neuralNetwork.getNeurons();
+//        Weights weights = neuralNetwork.getWeights();
+//
+//        float[] errors = new float[OUTPUT_SIZE];
+//
+//        // OUTPUT LAYER ERROR (Softmax + Cross-Entropy has simple derivative)
+//        int outputLayerIndex = layers.size() - 1;
+//        List<Neuron> outputLayer = layers.get(outputLayerIndex);
+//
+//        for (int x = 0; x < OUTPUT_SIZE; ++x) {
+//            Neuron neuron = outputLayer.get(x);
+//            // For Softmax + Cross-Entropy: gradient is simply (prediction - target)
+//            float error = (neuron.getActivation() - targets[x]);
+//            errors[x] = error;
+//
+//            // Update output bias
+//            neuron.setBias(neuron.getBias() - learningRate * error);
+//        }
+//
+//        // HIDDEN LAYER BACKPROPAGATION
+//        for (int midLayer = layers.size() - 2; midLayer >= 0; --midLayer) {
+//            List<Neuron> currentLayerNeurons = layers.get(midLayer);
+//            List<Neuron> nextLayerNeurons = layers.get(midLayer + 1);
+//
+//            float[] currentLayerErrors = new float[currentLayerNeurons.size()];
+//
+//            for (int currentNeuron = 0; currentNeuron < currentLayerNeurons.size(); ++currentNeuron) {
+//                Neuron currentLayerNeuron = currentLayerNeurons.get(currentNeuron);
+//                float errorSum = 0;
+//
+//                // Backpropagate error and update weights
+//                for (int nextNeuron = 0; nextNeuron < nextLayerNeurons.size(); ++nextNeuron) {
+//                    float weight = weights.getWeight(midLayer, currentNeuron, nextNeuron);
+//
+//                    // Accumulate error from next layer
+//                    errorSum += weight * errors[nextNeuron];
+//
+//                    // Update weight
+//                    float gradient = errors[nextNeuron] * currentLayerNeuron.getActivation();
+//
+//                    // Gradient clipping to prevent explosions
+//                    gradient = Math.max(-5.0f, Math.min(5.0f, gradient));
+//
+//                    float updatedWeight = weight - learningRate * gradient;
+//                    weights.setWeight(midLayer, currentNeuron, nextNeuron, updatedWeight);
+//                }
+//
+//                // Calculate error for this neuron (multiply by derivative)
+//                currentLayerErrors[currentNeuron] = errorSum * currentLayerNeuron.getDerivative();
+//
+//                // Update bias for hidden layers
+//                if (midLayer > 0) {
+//                    float newBias = currentLayerNeuron.getBias() - learningRate * currentLayerErrors[currentNeuron];
+//                    currentLayerNeuron.setBias(newBias);
+//                }
+//            }
+//
+//            errors = currentLayerErrors;
+//        }
+//    }
+
+
+    //the inputs range is not -1,1 so be careful to parse that later
+
+    //This is for the MNIST dataset
+
+
+//    public void train(int epochs, float learningRate) {
+//
+//        this.learningRate = learningRate;
+//            // initialize the weights that are needed to be modified
+//        for (int e = 0; e < epochs; e++) {
+//            int iterations = trainingData.length / BATCH_SIZE;
+//            //no of the partitions you made of the data
+//            for (int i = 0; i < iterations; ++i) {
+//
+//
+//                float cost = 0;
+//                // the data in the given partition
+//                int start = i * BATCH_SIZE;
+//                //first populate the inputs
+//                for (int j = start; j < start + BATCH_SIZE; ++j) {
+//                    float[] inputs = trainingData[j];
+//                    List<Neuron> inputLayer = neuralNetwork.getNeurons().getFirst();
+//                    // k = 1 as the 0th index is the label
+//                    for (int k = 1; k < trainingData[j].length; ++k) {
+//                        //set the input layer of neurons
+//                        float input = inputs[k];
+//                        inputLayer.get(k - 1).setVal(input);
+//                        inputLayer.get(k - 1).setActivation(input);
+//                        if (j % 2000 == 0 && k == 10) {
+//                            // Triggers once every 2000 rows, after the last input (k=10) is set
+//                            System.out.println("DEBUG Row " + j + " (Label " + inputs[0] + "):");
+//                            System.out.print("   Inputs: ");
+//                            for(int z=1; z<=10; z++) System.out.printf("%.3f ", inputs[z]);
+//                            System.out.println();
+//                        }
+//                    }
+//
+//                // do the forward pass once you have set the inputs
+//                forwardPass();
+//
+//                cost += calculateCostFunction(j);
+//
+//                float label = inputs[0];
+//                float[] targets = new float[OUTPUT_SIZE];
+//                for (int x = 0; x < OUTPUT_SIZE; ++x) {
+//                    if (x == label) targets[x] = 1.0f;
+//                    else targets[x] = 0.f;
+//                }
+//
+//                //We calculate the changes we want to make to each weight from the cost function we just made above.
+//                backpropagate(targets,this.learningRate);
+//                    if (j % 1000 == 0) {
+//                        List<Neuron> out = neuralNetwork.getNeurons().getLast();
+//
+//                        // Print the RAW values of the two output neurons
+//                        float out0 = out.get(0).getActivation();
+//                        float out1 = out.get(1).getActivation();
+//                        float out2 = out.get(2).getActivation();
+//                        float out3 = out.get(3).getActivation();
+//
+//                        System.out.println("DEBUG Row " + j + ":");
+//                        System.out.println("   Target: " + label);
+//                        System.out.printf("   Raw Out: [E: %.3f, Pi: %.3f , Mu: %.3f, Ga: %.3f]\n", out0, out1,out2,out3);
+//
+//                        // Check if it's "stuck"
+//                        if (Math.abs(out0 - out1) < 0.01) {
+//                            System.out.println("   WARNING: Network is undecided (Weights are symmetric?)");
+//                        }
+//                        List<Neuron> hiddenLayer = neuralNetwork.getNeurons().get(1); // Layer 1 (First Hidden)
+//                        int deadNeurons = 0;
+//                        float totalActivation = 0;
+//
+//                        for (Neuron n : hiddenLayer) {
+//                            if (n.getActivation() == 0.0f) deadNeurons++;
+//                            totalActivation += n.getActivation();
+//                        }
+//
+//                        float avgActivation = totalActivation / hiddenLayer.size();
+//                        System.out.printf("   [Layer 1 Health] Avg Act: %.4f | Dead Neurons: %d/%d\n",
+//                                avgActivation, deadNeurons, hiddenLayer.size());
+//
+//                        if (deadNeurons == hiddenLayer.size()) {
+//                            System.out.println("   CRITICAL FAILURE: Layer 1 is 100% Dead (Dying ReLU Problem). Reduce Learning Rate or Check Inputs.");
+//                        }
+//
+//                    }
+//            }
+//
+//
+//            cost /= BATCH_SIZE;
+//            System.out.println("The cost is " + cost);
+//        }
+//        ++e;
+//    }
+//
+//    }
+
+    // Returns the index (0-9) of the neuron with the highest activation
