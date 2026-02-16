@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CERN Particle Dashboard</title>
+    <title>CERN Particle Dashboard - Interactive</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -22,6 +22,7 @@
         }
         .title { color: #00d4ff; font-size: 24px; font-weight: bold; }
         .status { color: #00ff00; font-size: 14px; animation: blink 2s infinite; }
+        .status.disconnected { color: #ff0055; }
 
         .grid {
             display: grid;
@@ -36,6 +37,91 @@
             padding: 15px;
             border-radius: 5px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        /* Control Panel Styles */
+        .control-panel {
+            background: #252525;
+            border: 2px solid #00d4ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .control-panel h3 {
+            color: #00d4ff;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .control-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+        .control-row label {
+            flex: 0 0 100px;
+            color: #888;
+            font-size: 13px;
+        }
+        select, input[type="number"], input[type="range"] {
+            flex: 1;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        input[type="range"] {
+            padding: 0;
+        }
+        .energy-display {
+            color: #00d4ff;
+            font-weight: bold;
+            min-width: 80px;
+            text-align: right;
+        }
+        button {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        button:hover {
+            background: linear-gradient(135deg, #00ffff, #00d4ff);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 212, 255, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .btn-row button {
+            flex: 1;
+        }
+        .btn-batch {
+            background: linear-gradient(135deg, #ff0055, #cc0044);
+        }
+        .btn-batch:hover {
+            background: linear-gradient(135deg, #ff3377, #ff0055);
         }
 
         /* The Live Feed Table */
@@ -57,18 +143,81 @@
         .card h3 { margin: 0; font-size: 28px; color: #fff; }
         .card span { font-size: 12px; color: #888; }
 
+        /* Particle type indicators */
+        .particle-electron { color: #00d4ff; }
+        .particle-pion { color: #ff0055; }
+        .particle-muon { color: #00ff00; }
+        .particle-gamma { color: #ffff00; }
+
         @keyframes blink { 50% { opacity: 0.5; } }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #00d4ff;
+            color: #000;
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-weight: bold;
+            opacity: 0;
+            transform: translateX(400px);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        .notification.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
     </style>
 </head>
 <body>
 
+<div class="notification" id="notification"></div>
+
 <div class="header">
-    <div class="title">LHC PARTICLE INGESTION SYSTEM</div>
-    <div class="status">● LIVE CONNECTION ACTIVE</div>
+    <div class="title">🔬 LHC PARTICLE CONTROL SYSTEM</div>
+    <div class="status" id="connection-status">● CONNECTING...</div>
 </div>
 
 <div class="grid">
     <div class="left-col">
+        <!-- CONTROL PANEL -->
+        <div class="control-panel">
+            <h3>⚡ EVENT GENERATOR</h3>
+            
+            <div class="control-row">
+                <label>PARTICLE TYPE:</label>
+                <select id="particle-select">
+                    <option value="electron">Electron (e⁻)</option>
+                    <option value="pion">Pion (π⁻)</option>
+                    <option value="muon">Muon (μ⁻)</option>
+                    <option value="gamma">Gamma (γ)</option>
+                </select>
+            </div>
+
+            <div class="control-row">
+                <label>ENERGY:</label>
+                <input type="range" id="energy-slider" min="300" max="5000" value="1500" step="50">
+                <span class="energy-display" id="energy-value">1500 MeV</span>
+            </div>
+
+            <div class="control-row">
+                <label>BATCH SIZE:</label>
+                <input type="number" id="batch-count" min="1" max="100" value="10">
+            </div>
+
+            <div class="btn-row">
+                <button id="btn-single" onclick="generateSingleEvent()">
+                    🎯 FIRE SINGLE EVENT
+                </button>
+                <button id="btn-batch" class="btn-batch" onclick="generateBatch()">
+                    💥 FIRE BATCH
+                </button>
+            </div>
+        </div>
+
         <div class="stats-row">
             <div class="card">
                 <h3 id="total-count">0</h3>
@@ -109,7 +258,14 @@
 </div>
 
 <script>
-    // --- 1. SETUP CHARTS ---
+    // --- CONFIGURATION ---
+    const API_BASE = "http://localhost:8080";
+    const STREAM_URL = `${API_BASE}/stream`;
+    const GENERATE_URL = `${API_BASE}/api/events/generate`;
+    const BATCH_URL = `${API_BASE}/api/events/batch`;
+    const STATUS_URL = `${API_BASE}/api/events/status`;
+
+    // --- CHART SETUP ---
     const ctx = document.getElementById('distributionChart').getContext('2d');
     const chart = new Chart(ctx, {
         type: 'bar',
@@ -125,19 +281,137 @@
         },
         options: {
             responsive: true,
-            plugins: { legend: { display: false }, title: { display: true, text: 'Detected Particle Distribution', color: '#888' } },
-            scales: { y: { grid: { color: '#333' }, ticks: { color: '#888' } }, x: { ticks: { color: '#888' } } }
+            plugins: { 
+                legend: { display: false }, 
+                title: { display: true, text: 'Detected Particle Distribution', color: '#888' } 
+            },
+            scales: { 
+                y: { grid: { color: '#333' }, ticks: { color: '#888' } }, 
+                x: { ticks: { color: '#888' } } 
+            }
         }
     });
 
-    // --- 2. STATE ---
+    // --- STATE ---
     let total = 0;
     let correct = 0;
     let confSum = 0;
     const typeMap = { "Electron": 0, "Pion": 1, "Muon": 2, "Gamma": 3 };
 
-    // --- 3. CONNECT TO BACKEND ---
-    const eventSource = new EventSource("http://localhost:8080/stream");
+    // --- UI ELEMENTS ---
+    const energySlider = document.getElementById('energy-slider');
+    const energyValue = document.getElementById('energy-value');
+    const btnSingle = document.getElementById('btn-single');
+    const btnBatch = document.getElementById('btn-batch');
+    const statusIndicator = document.getElementById('connection-status');
+
+    // Update energy display as slider moves
+    energySlider.addEventListener('input', (e) => {
+        energyValue.textContent = e.target.value + ' MeV';
+    });
+
+    // --- EVENT GENERATION FUNCTIONS ---
+    async function generateSingleEvent() {
+        const particleType = document.getElementById('particle-select').value;
+        const energy = parseFloat(energySlider.value);
+
+        btnSingle.disabled = true;
+        
+        try {
+            const response = await fetch(GENERATE_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ particleType, energy })
+            });
+
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                showNotification(`✅ ${particleType} @ ${energy} MeV launched!`);
+            } else {
+                showNotification(`❌ ${result.message}`, true);
+            }
+        } catch (error) {
+            showNotification('❌ Connection error', true);
+            console.error('Error:', error);
+        } finally {
+            setTimeout(() => { btnSingle.disabled = false; }, 500);
+        }
+    }
+
+    async function generateBatch() {
+        const particleType = document.getElementById('particle-select').value;
+        const energy = parseFloat(energySlider.value);
+        const count = parseInt(document.getElementById('batch-count').value);
+
+        btnBatch.disabled = true;
+
+        try {
+            const response = await fetch(BATCH_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ particleType, energy, count })
+            });
+
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                showNotification(`💥 Batch of ${count} events launched!`);
+            } else {
+                showNotification(`❌ ${result.message}`, true);
+            }
+        } catch (error) {
+            showNotification('❌ Connection error', true);
+            console.error('Error:', error);
+        } finally {
+            setTimeout(() => { btnBatch.disabled = false; }, 1000);
+        }
+    }
+
+    // --- NOTIFICATION SYSTEM ---
+    function showNotification(message, isError = false) {
+        const notification = document.getElementById('notification');
+        notification.textContent = message;
+        notification.style.background = isError ? '#ff0055' : '#00d4ff';
+        notification.style.color = isError ? '#fff' : '#000';
+        notification.classList.add('show');
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+        }, 3000);
+    }
+
+    // --- CHECK SIMULATION STATUS ---
+    async function checkStatus() {
+        try {
+            const response = await fetch(STATUS_URL);
+            const status = await response.json();
+            
+            if (status.connected) {
+                statusIndicator.textContent = '● SIMULATION CONNECTED';
+                statusIndicator.classList.remove('disconnected');
+                btnSingle.disabled = false;
+                btnBatch.disabled = false;
+            } else {
+                statusIndicator.textContent = '● SIMULATION OFFLINE';
+                statusIndicator.classList.add('disconnected');
+                btnSingle.disabled = true;
+                btnBatch.disabled = true;
+            }
+        } catch (error) {
+            statusIndicator.textContent = '● CONNECTION ERROR';
+            statusIndicator.classList.add('disconnected');
+            btnSingle.disabled = true;
+            btnBatch.disabled = true;
+        }
+    }
+
+    // Check status every 3 seconds
+    setInterval(checkStatus, 3000);
+    checkStatus(); // Initial check
+
+    // --- CONNECT TO EVENT STREAM ---
+    const eventSource = new EventSource(STREAM_URL);
 
     eventSource.addEventListener("particle-event", function(event) {
         const data = JSON.parse(event.data);
@@ -156,24 +430,33 @@
         const idx = typeMap[data.predicted];
         if(idx !== undefined) {
             chart.data.datasets[0].data[idx]++;
-            chart.update('none'); // 'none' mode prevents animation lag on high speed
+            chart.update('none');
         }
 
         // Update Table
         const tbody = document.querySelector("#log-table tbody");
         const row = document.createElement("tr");
         row.innerHTML = `
-                <td>#${data.id}</td>
-                <td>${data.actual}</td>
-                <td class="${data.correct ? 'correct' : 'wrong'}">${data.predicted}</td>
-                <td>${data.conf.toFixed(1)}%</td>
-                <td>${data.energy.toFixed(0)} MeV</td>
-            `;
+            <td>#${data.id}</td>
+            <td class="particle-${data.actual.toLowerCase()}">${data.actual}</td>
+            <td class="${data.correct ? 'correct' : 'wrong'}">${data.predicted}</td>
+            <td>${data.conf.toFixed(1)}%</td>
+            <td>${data.energy.toFixed(0)} MeV</td>
+        `;
         tbody.prepend(row);
 
-        // Limit table to 50 rows to prevent crashing browser
+        // Limit table to 50 rows
         if(tbody.children.length > 50) tbody.removeChild(tbody.lastChild);
     });
+
+    eventSource.onerror = function() {
+        statusIndicator.textContent = '● STREAM DISCONNECTED';
+        statusIndicator.classList.add('disconnected');
+    };
+
+    eventSource.onopen = function() {
+        console.log('Event stream connected');
+    };
 </script>
 </body>
 </html>
