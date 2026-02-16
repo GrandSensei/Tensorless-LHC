@@ -30,6 +30,8 @@
 #ifndef B4PrimaryGeneratorAction_h
 #define B4PrimaryGeneratorAction_h 1
 
+#include <string>
+
 #include "G4VUserPrimaryGeneratorAction.hh"
 
 class G4ParticleGun;
@@ -45,6 +47,7 @@ namespace B4
 /// can be changed via the G4 build-in commands of G4ParticleGun class
 /// (see the macros provided with this example).
 
+  struct ParticleCommand;
 class PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
 {
   public:
@@ -54,7 +57,13 @@ class PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
     void GeneratePrimaries(G4Event* event) override;
 
   private:
-    G4ParticleGun* fParticleGun = nullptr;  // G4 particle gun
+    G4ParticleGun* fParticleGun = nullptr;// G4 particle gun
+  bool fIsMasterGenerator = false;
+
+  void InitializeCommandServer();
+  void CheckForCommands();
+  void ParseAndQueueCommand(const std::string& commandLine);
+  void GenerateRandomParticle();
 };
 
 }  // namespace B4

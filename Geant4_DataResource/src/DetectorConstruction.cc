@@ -104,8 +104,8 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes()
   auto defaultMaterial = G4Material::GetMaterial("Galactic");
 
   //auto absorberMaterial = G4Material::GetMaterial("G4_Pb");
-  nistManager->FindOrBuildMaterial("G4_Pb");
-  auto  absorberMaterial = G4Material::GetMaterial("G4_Pb");
+  nistManager->FindOrBuildMaterial("G4_Cu");
+  auto  absorberMaterial = G4Material::GetMaterial("G4_Cu");
   auto gapMaterial = G4Material::GetMaterial("liquidArgon");
 
   if (!defaultMaterial || !absorberMaterial || !gapMaterial) {
