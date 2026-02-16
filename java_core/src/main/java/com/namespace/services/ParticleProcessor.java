@@ -1,8 +1,8 @@
 package com.namespace.services;
 
 
-import com.namespace.NeuralEngine.NeuralEngine; // Importing YOUR existing class
-import com.namespace.NeuralEngine.Neuron;
+import com.namespace.tensorless.NeuralEngine; // Importing YOUR existing class
+import com.namespace.tensorless.Neuron;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;

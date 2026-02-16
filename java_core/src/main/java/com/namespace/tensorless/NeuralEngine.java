@@ -1,4 +1,4 @@
-package com.namespace.NeuralEngine;
+package com.namespace.tensorless;
 
 import java.io.*;
 import java.util.ArrayList;

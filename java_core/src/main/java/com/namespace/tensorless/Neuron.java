@@ -1,4 +1,4 @@
-package com.namespace.NeuralEngine;
+package com.namespace.tensorless;
 
 public class Neuron {
 

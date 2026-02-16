@@ -1,8 +1,8 @@
 package com.namespace;
 
-import com.namespace.NeuralEngine.ExcelParse;
-import com.namespace.NeuralEngine.NeuralEngine;
-import com.namespace.NeuralEngine.NeuralNetwork;
+import com.namespace.tensorless.ExcelParse;
+import com.namespace.tensorless.NeuralEngine;
+import com.namespace.tensorless.NeuralNetwork;
 import java.util.Random;
 
 public class PhysicsClassifier {

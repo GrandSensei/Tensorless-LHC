@@ -1,4 +1,4 @@
-package com.namespace.NeuralEngine;
+package com.namespace.tensorless;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,6 +6,8 @@ import java.util.List;
 public class Weights {
 
     //consider a 3D list for now
+    //some random words
+
 
     private List<List<List<Float>>> weights;
 
