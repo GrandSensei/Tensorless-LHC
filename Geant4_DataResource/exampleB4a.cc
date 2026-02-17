@@ -262,7 +262,7 @@ int main(int argc, char** argv)
   else {
     // interactive mode : define UI session
     UImanager->ApplyCommand("/control/execute init_vis.mac");
-    UImanager->ApplyCommand("/run/beamOn 10000");
+    UImanager->ApplyCommand("/run/beamOn 10000000");
     if (ui->IsGUI()) {
       UImanager->ApplyCommand("/control/execute gui.mac");
     }
