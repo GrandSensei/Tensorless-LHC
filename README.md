@@ -294,10 +294,10 @@ brain.test(testData);
 | Metric | Training Set | Test Set | Status |
 | :--- | :---: | :---: | :--- |
 | **Overall Accuracy** | 82.6% | 82.5% | Consistent (No Overfitting) |
-| **Electron Precision** | 0.75 | 0.75 | Low due to Gamma contamination |
-| **Pion Precision** | 0.96 | 0.96 | High (Very few things fake being a Pion) |
-| **Muon Precision** | 0.74 | 0.74 | Low due to Pion "punch-through" |
-| **Gamma Precision** | 0.97 | 0.97 | High (Model is confident when it calls Gamma) |
+| **Electron Precision** | 0.75 | 0.97 | High (Model is confident when it calls Electron) |
+| **Pion Precision** | 0.74 | 0.73 | Low due to Pion "punch-through" |
+| **Muon Precision** |  0.96 | 0.96 | High (Very few things fake being a Muon) 
+| **Gamma Precision** | 0.75| 0.75 | Low due to Electron like behaviour |
 **Generalization Gap**: 0.1% (indicates good generalization, minimal overfitting)
 
 ### Confusion Matrix (Test Set)
