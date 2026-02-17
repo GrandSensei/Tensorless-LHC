@@ -8,6 +8,7 @@ import java.io.*;
 import java.net.Socket;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 public class ParticleCommandService {
@@ -25,28 +26,35 @@ public class ParticleCommandService {
     // UPDATED: Port 5003 to match your C++ logs
     private static final int C_PLUS_PLUS_PORT = 5003;
 
+    @Value("${simulation.host:localhost}")
+    private String simulationHost;
+
+    @Value("${simulation.port:5003}")
+    private int simulationPort;
+
     @PostConstruct
     public void init() {
-        // Try initial connection
         connectToSimulation();
     }
 
-    private synchronized void connectToSimulation() {
+
+    private synchronized boolean connectToSimulation() {
         // If already connected, check if it's still alive
         if (isConnected && commandSocket != null && !commandSocket.isClosed()) {
-            return;
+            return true;
         }
 
         try {
-            System.out.println("🔄 Attempting to connect to Simulation on port " + C_PLUS_PLUS_PORT + "...");
-            commandSocket = new Socket("127.0.0.1", C_PLUS_PLUS_PORT);
+            System.out.println("🔄 Connecting to Simulation at " + simulationHost + ":" + simulationPort + "...");            commandSocket = new Socket(simulationHost, simulationPort);
             commandWriter = new PrintWriter(commandSocket.getOutputStream(), true);
             isConnected = true;
             System.out.println("✅ COMMAND CHANNEL ESTABLISHED: Ready to control simulation!");
+            return true;
         } catch (IOException e) {
             // Be quiet about failures to avoid spamming logs, just set flag false
             isConnected = false;
         }
+        return false;
     }
 
     public boolean sendGenerateCommand(String particleType, double energy) {
@@ -71,9 +79,17 @@ public class ParticleCommandService {
     }
 
     private boolean sendRawCommand(String command) {
+        // 1. Check Connection
+        if (commandWriter == null || commandWriter.checkError()) {
+            System.out.println("⚠️ Connection lost. Reconnecting...");
+            boolean reconnected =connectToSimulation();
+            if (!reconnected) return false;
+        }
         try {
             commandWriter.println(command);
-            if (commandWriter.checkError()) throw new IOException("Writer error"); // Detect broken pipe
+            if (commandWriter.checkError()) {
+                throw new IOException("Writer error"); // Detect broken pipe
+            }
 
             commandQueue.add(command);
             System.out.println("📡 Command sent: " + command);
@@ -116,7 +132,7 @@ public class ParticleCommandService {
 
     private void closeQuietly() {
         try {
-            if (commandWriter != null) commandWriter.close();
+          //  if (commandWriter != null) commandWriter.close();
             if (commandSocket != null) commandSocket.close();
         } catch (IOException e) {
             // ignore

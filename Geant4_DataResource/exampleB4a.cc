@@ -88,7 +88,6 @@ void NetworkListenerLoop() {
 
   int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 
-  // FIX: Allow immediate restart of the port
   int opt = 1;
   setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
@@ -98,7 +97,7 @@ void NetworkListenerLoop() {
   addr.sin_port = htons(5003);
 
   if (bind(serverSocket, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-std::cerr << "❌ Listener failed to bind port 5003. Error: " << strerror(errno) << std::endl;    return;
+std::cout<< "❌ Listener failed to bind port 5003. Error: " << std::endl;    return;
   }
   listen(serverSocket, 1);
 
@@ -108,49 +107,57 @@ std::cerr << "❌ Listener failed to bind port 5003. Error: " << strerror(errno)
     int clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &len);
 
     if (clientSocket >= 0) {
+      char buffer[1024];
+      std::cout << "🔗 Java Controller Connected!" << std::endl;
+      while (true){
       std::cout << "📩 COMMAND RECEIVED! Processing..." << std::endl;
 
-      char buffer[1024];
       int bytes = recv(clientSocket, buffer, 1023, 0);
+      if (bytes <= 0) {
+        std::cout << "🔌 Controller Disconnected." << std::endl;
+        close(clientSocket);
+        break;
+      }
       if (bytes > 0) {
-          buffer[bytes] = '\0';
-          std::string data(buffer);
+        buffer[bytes] = '\0';
+        std::string data(buffer);
 
-          // --- PARSING LOGIC RESTORED ---
-          std::stringstream ss(data); // e.g., "GENERATE,e-,1000"
-          std::string segment;
-          std::vector<std::string> parts;
+        // --- PARSING LOGIC RESTORED ---
+        std::stringstream ss(data); // e.g., "GENERATE,e-,1000"
+        std::string segment;
+        std::vector<std::string> parts;
 
-          while(std::getline(ss, segment, ',')) {
-              parts.push_back(segment);
+        while(std::getline(ss, segment, ',')) {
+          parts.push_back(segment);
+        }
+
+        if (parts.size() >= 3) {
+          B4::ParticleCommand cmd;
+          cmd.particleType = parts[1]; // e.g. "e-"
+
+          // Safe conversion for energy
+          try {
+            cmd.energy = std::stod(parts[2]) * MeV;
+          } catch (...) {
+            cmd.energy = 300 * MeV; // Default if parse fails
           }
 
-          if (parts.size() >= 3) {
-            B4::ParticleCommand cmd;
-            cmd.particleType = parts[1]; // e.g. "e-"
-
-              // Safe conversion for energy
-              try {
-                  cmd.energy = std::stod(parts[2]) * MeV;
-              } catch (...) {
-                  cmd.energy = 300 * MeV; // Default if parse fails
-              }
-
-              // Handle Count (Batch size)
-              int count = 1;
-              if (parts.size() > 3) {
-                  try { count = std::stoi(parts[3]); } catch(...) {}
-              }
-
-              // Push to Queue
-              {
-                  std::lock_guard<std::mutex> lock(B4::g_queueMutex);
-                  for(int i=0; i<count; i++) {
-                     B4::g_commandQueue.push(cmd);
-                  }
-              }
-              std::cout << "📥 Queued " << count << " particles of type " << cmd.particleType << std::endl;
+          // Handle Count (Batch size)
+          int count = 1;
+          if (parts.size() > 3) {
+            try { count = std::stoi(parts[3]); } catch(...) {}
           }
+
+          // Push to Queue
+          {
+            std::lock_guard<std::mutex> lock(B4::g_queueMutex);
+            for(int i=0; i<count; i++) {
+              B4::g_commandQueue.push(cmd);
+            }
+          }
+          std::cout << "📥 Queued " << count << " particles of type " << cmd.particleType << std::endl;
+           }
+        }
       }
       close(clientSocket);
     }
