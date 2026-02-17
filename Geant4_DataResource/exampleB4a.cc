@@ -27,6 +27,9 @@
 /// \file exampleB4a.cc
 /// \brief Main program of the B4a example
 
+#include <queue>
+
+#include "CommandQueue.hh"
 #include "ActionInitialization.hh"
 #include "DetectorConstruction.hh"
 #include "FTFP_BERT.hh"
@@ -39,19 +42,121 @@
 #include "G4VisExecutive.hh"
 // #include "Randomize.hh"
 
+
+#include <thread>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <iostream>
+#include <sstream>
+#include <vector>
+
+#include <thread>
+#include <chrono>
+
+#include <Randomize.hh>
+#include "G4ParticleGun.hh"
+#include "G4ParticleTable.hh"
+#include "G4SystemOfUnits.hh"
+#include "G4LogicalVolumeStore.hh"
+#include "G4Box.hh"
+#include "include/CommandQueue.hh"
+//#include "include/CommandQueue.hh"
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 namespace
 {
 void PrintUsage()
 {
-  G4cerr << " Usage: " << G4endl;
-  G4cerr << " exampleB4a [-m macro ] [-u UIsession] [-t nThreads] [-vDefault]" << G4endl;
-  G4cerr << "   note: -t option is available only for multi-threaded mode." << G4endl;
+  std::cout << " Usage: " << std::endl;
+  std::cout << " exampleB4a [-m macro ] [-u UIsession] [-t nThreads] [-vDefault]" << std::endl;
+  std::cout << "   note: -t option is available only for multi-threaded mode." << std::endl;
 }
 }  // namespace
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+
+namespace B4 {
+  std::queue<ParticleCommand> g_commandQueue;
+  std::mutex g_queueMutex;
+}
+
+// --- THE LISTENER LOOP ---
+void NetworkListenerLoop() {
+  std::cout << "🎧 NETWORK LISTENER THREAD STARTED on Port 5003" << std::endl;
+
+  int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+
+  // FIX: Allow immediate restart of the port
+  int opt = 1;
+  setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+  struct sockaddr_in addr{};
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = INADDR_ANY;
+  addr.sin_port = htons(5003);
+
+  if (bind(serverSocket, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+std::cerr << "❌ Listener failed to bind port 5003. Error: " << strerror(errno) << std::endl;    return;
+  }
+  listen(serverSocket, 1);
+
+  while (true) {
+    struct sockaddr_in clientAddr;
+    socklen_t len = sizeof(clientAddr);
+    int clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &len);
+
+    if (clientSocket >= 0) {
+      std::cout << "📩 COMMAND RECEIVED! Processing..." << std::endl;
+
+      char buffer[1024];
+      int bytes = recv(clientSocket, buffer, 1023, 0);
+      if (bytes > 0) {
+          buffer[bytes] = '\0';
+          std::string data(buffer);
+
+          // --- PARSING LOGIC RESTORED ---
+          std::stringstream ss(data); // e.g., "GENERATE,e-,1000"
+          std::string segment;
+          std::vector<std::string> parts;
+
+          while(std::getline(ss, segment, ',')) {
+              parts.push_back(segment);
+          }
+
+          if (parts.size() >= 3) {
+            B4::ParticleCommand cmd;
+            cmd.particleType = parts[1]; // e.g. "e-"
+
+              // Safe conversion for energy
+              try {
+                  cmd.energy = std::stod(parts[2]) * MeV;
+              } catch (...) {
+                  cmd.energy = 300 * MeV; // Default if parse fails
+              }
+
+              // Handle Count (Batch size)
+              int count = 1;
+              if (parts.size() > 3) {
+                  try { count = std::stoi(parts[3]); } catch(...) {}
+              }
+
+              // Push to Queue
+              {
+                  std::lock_guard<std::mutex> lock(B4::g_queueMutex);
+                  for(int i=0; i<count; i++) {
+                     B4::g_commandQueue.push(cmd);
+                  }
+              }
+              std::cout << "📥 Queued " << count << " particles of type " << cmd.particleType << std::endl;
+          }
+      }
+      close(clientSocket);
+    }
+  }
+}
+
 
 int main(int argc, char** argv)
 {
@@ -106,6 +211,12 @@ int main(int argc, char** argv)
 
   // Construct the default run manager
   //
+
+  // 1. START LISTENER FIRST (Before anything else)
+  std::thread networkThread(NetworkListenerLoop);
+  networkThread.detach();
+
+
   auto runManager = G4RunManagerFactory::CreateRunManager(G4RunManagerType::Default);
 #ifdef G4MULTITHREADED
   if (nThreads > 0) {

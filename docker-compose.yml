@@ -1,0 +1,90 @@
+#version: '3.8'
+
+services:
+  # 1. Zookeeper (Brain of Kafka)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: lhcpid-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - lhcpid-net
+
+  # 2. Kafka Broker (The Streaming Pipeline)
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: lhcpid-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - lhcpid-net
+
+  # 3. The Simulation (C++ Physics Engine)
+  simulation:
+    build:
+      context: ./Geant4_DataResource
+      dockerfile: Dockerfile
+    container_name: lhcpid-sim
+    ports:
+      - "5003:5003" # Command Port
+      - "5001:5001"
+    networks:
+      - lhcpid-net
+    tty: true       # Keeps the container alive
+    restart: unless-stopped
+
+  # 4. Postgres Database (NEW)
+  postgres:
+    image: postgres:15
+    container_name: lhcpid-db
+    environment:
+      POSTGRES_DB: particle_events
+      POSTGRES_USER: lhcpid_admin
+      POSTGRES_PASSWORD: particle_password
+    ports:
+      - "5432:5432"
+    networks:
+      - lhcpid-net
+
+  # 5. The Backend (Java Spring Boot Analysis)
+  backend:
+    build:
+      context: ./java_core
+      dockerfile: Dockerfile
+    container_name: lhcpid-backend
+    ports:
+      - "8080:8080" # Web Dashboard
+    depends_on:
+      - simulation
+      - kafka
+      - postgres
+    networks:
+      - lhcpid-net
+    environment:
+      # --- EXISTING CONFIG ---
+      - SIMULATION_PORT=5003
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - SIMULATION_HOST=lhcpid-sim
+      - JAVA_TOOL_OPTIONS=-Dspring.kafka.bootstrap-servers=kafka:29092 -Dspring.datasource.url=jdbc:postgresql://postgres:5432/particle_events -Dserver.port=8080
+
+      # --- NEW: DATABASE CONNECTION (Required) ---
+      # This tells Java to talk to the container named "postgres", NOT localhost
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/particle_events
+      - SPRING_DATASOURCE_USERNAME=lhcpid_admin
+      - SPRING_DATASOURCE_PASSWORD=particle_password
+      # This ensures the tables are created automatically
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+
+networks:
+  lhcpid-net:
+    driver: bridge

@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
@@ -39,11 +40,28 @@ public class ParticleProcessor {
     public void init() {
         try {
             // 1. Get model from resources (Spring Boot way)
-            String modelPath = "src/main/resources/models/multiclass_classifier2.bin";
-            if (modelPath == null) {
-                System.err.println("🔥 CRITICAL: 'multiclass_classifier.bin' not found in src/main/resources/");
-                return;
+            // 1. Check for the Docker path first
+            String modelPath = "";
+            File dockerModel = new File("/app/models/multiclass_classifier2.bin");
+
+            if (dockerModel.exists()) {
+                System.out.println("🐳 Docker Detected: Loading model from " + dockerModel.getAbsolutePath());
+                modelPath = dockerModel.getAbsolutePath();
+            } else {
+                // 2. Fallback to Local IDE path (Relative to project root)
+                System.out.println("💻 IDE Detected: Searching local resources...");
+                File localModel = new File("src/main/resources/models/multiclass_classifier2.bin");
+
+                if (localModel.exists()) {
+                    modelPath = localModel.getAbsolutePath();
+                } else {
+                    throw new RuntimeException("❌ Model file not found! Checked: \n" +
+                            "1. " + dockerModel.getAbsolutePath() + "\n" +
+                            "2. " + localModel.getAbsolutePath());
+                }
             }
+
+            System.out.println("✅ Loading Model from: " + modelPath);
 
 
             // 3. Load the brain using YOUR existing static method

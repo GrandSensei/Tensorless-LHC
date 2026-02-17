@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import java.io.*;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
@@ -38,7 +39,8 @@ public class ParticleIngestionService {
     private void listenForParticles() {
         try {
             int port =5001;
-            serverSocket = new ServerSocket(port);
+            serverSocket = new ServerSocket(5001, 50, InetAddress.getByName("0.0.0.0"));
+            //serverSocket = new ServerSocket(port);
             System.out.println("🚀 LISTENING FOR PARTICLES ON PORT "+port+"...");
 
 

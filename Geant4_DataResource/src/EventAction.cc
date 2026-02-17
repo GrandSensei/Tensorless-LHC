@@ -44,6 +44,11 @@
 #include <iostream>
 #include <sstream>
 
+#include <netdb.h>      // Required for gethostbyname
+
+
+class G4Event;
+
 namespace B4a
 {
 
@@ -51,44 +56,69 @@ namespace B4a
 
   EventAction::EventAction()
   : G4UserEventAction(),
-  fSocket(-1),
-  fConnected(false)
+    fSocket(-1),
+    fConnected(false)
   {
-    // Initialize our vector with 10 zeros (assuming 10 layers)
     fLayerEnergies.assign(10, 0.0);
 
-    // --- CONNECT TO SERVER ---
-    // We attempt to connect to localhost port 5000 (We will build a listener here later)
-
-    fSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (fSocket < 0) {
-      G4cerr << "Error creating socket!" << G4endl;
-      return;
-    }
+    // --- CONNECT TO SERVER (WITH RETRIES) ---
 
     struct sockaddr_in server_addr;
+    std::memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(5001); // The port our Java Bridge will listen on
+    server_addr.sin_port = htons(5001);
 
-    // Convert IPv4 address from text to binary form
-    // "127.0.0.1" is localhost. If you run Docker, this connects to your Mac host network.
-    if(inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr)<=0) {
-      G4cerr << "Invalid address/ Address not supported" << G4endl;
+    // 1. Resolve Hostname
+    struct hostent *server = gethostbyname("lhcpid-backend");
+
+    // 2. FALLBACK: Your Mac (Hybrid Mode / Debugging)
+    if (server == NULL) {
+      server = gethostbyname("host.docker.internal");
+    }
+
+    // 3. LAST RESORT: Localhost (Non-Docker)
+    if (server == NULL) {
+      server = gethostbyname("127.0.0.1");
+    }
+
+    if (server == NULL) {
+      std::cout << "❌ ERROR: Could not resolve hostname 'lhcpid-backend' or 'host.docker.internal'" << std::endl;
       return;
     }
 
-    if (connect(fSocket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-      G4cout << "⚠️ CONNECTION FAILED: Simulation will run without streaming." << G4endl;
-      fConnected = false;
+    if (server != NULL) {
+      std::memcpy(&server_addr.sin_addr.s_addr, server->h_addr, server->h_length);
+
+      // 2. RETRY LOOP (The Fix)
+      int max_retries = 30; // Wait up to 30 seconds
+
+      for (int i = 0; i < max_retries; ++i) {
+        fSocket = socket(AF_INET, SOCK_STREAM, 0);
+        if (fSocket < 0) break;
+
+        G4cout << "⏳ Connecting to Java Server (Attempt " << i+1 << "/" << max_retries << ")..." << G4endl;
+
+        if (connect(fSocket, (struct sockaddr *)&server_addr, sizeof(server_addr)) == 0) {
+          G4cout << "✅ CONNECTED TO DATA PIPELINE SERVER!" << G4endl;
+          fConnected = true;
+          break; // Success! Exit the loop.
+        } else {
+          close(fSocket); // Close failed socket before retrying
+          std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait 1 second
+        }
+      }
+
+      if (!fConnected) {
+        G4cout << "❌ FINAL FAILURE: Could not connect after " << max_retries << " attempts." << G4endl;
+      }
     } else {
-      G4cout << "✅ CONNECTED TO DATA PIPELINE SERVER!" << G4endl;
-      fConnected = true;
+      G4cerr << "❌ ERROR: Could not resolve hostname 'lhcpid-backend'" << G4endl;
     }
   }
 
   EventAction::~EventAction()
   {
-    if (fConnected && fSocket >= 0) {
+    if (fConnected && (fSocket>= 0)){
       close(fSocket);
     }
 
