@@ -199,8 +199,9 @@
 
             <div class="control-row">
                 <label>ENERGY:</label>
-                <input type="range" id="energy-slider" min="300" max="5000" value="1500" step="50">
-                <span class="energy-display" id="energy-value">1500 MeV</span>
+                <div style="flex: 1; padding: 8px; background: #2a2a2a; color: #888; border: 1px solid #444; border-radius: 4px; font-size: 13px; display: flex; align-items: center; justify-content: center;">
+                    🔒 LOCKED: 300 MeV (Model Limit)
+                </div>
             </div>
 
             <div class="control-row">
@@ -299,22 +300,22 @@
     const typeMap = { "Electron": 0, "Pion": 1, "Muon": 2, "Gamma": 3 };
 
     // --- UI ELEMENTS ---
-    const energySlider = document.getElementById('energy-slider');
-    const energyValue = document.getElementById('energy-value');
+    //const energySlider = document.getElementById('energy-slider');
+    //const energyValue = document.getElementById('energy-value');
     const btnSingle = document.getElementById('btn-single');
     const btnBatch = document.getElementById('btn-batch');
     const statusIndicator = document.getElementById('connection-status');
 
     // Update energy display as slider moves
-    energySlider.addEventListener('input', (e) => {
-        energyValue.textContent = e.target.value + ' MeV';
-    });
+    //energySlider.addEventListener('input', (e) => {
+    //    energyValue.textContent = e.target.value + ' MeV';
+    //});
 
     // --- EVENT GENERATION FUNCTIONS ---
     async function generateSingleEvent() {
         const particleType = document.getElementById('particle-select').value;
-        const energy = parseFloat(energySlider.value);
-
+        //const energy = parseFloat(energySlider.value);
+        const energy = 300;
         btnSingle.disabled = true;
         
         try {
@@ -341,7 +342,7 @@
 
     async function generateBatch() {
         const particleType = document.getElementById('particle-select').value;
-        const energy = parseFloat(energySlider.value);
+        const energy = 300;
         const count = parseInt(document.getElementById('batch-count').value);
 
         btnBatch.disabled = true;

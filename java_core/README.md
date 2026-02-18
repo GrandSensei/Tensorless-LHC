@@ -1,6 +1,6 @@
 # 🧠 Java Neural Network (From Scratch)
 
-![Java](https://img.shields.io/badge/Java-17%2B-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
+![Java](https://img.shields.io/badge/Java-21%2B-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Data](https://img.shields.io/badge/Data-CSV-blue?style=for-the-badge)
 ![Architecture](https://img.shields.io/badge/Architecture-MLP-purple?style=for-the-badge)
 
@@ -76,11 +76,10 @@ The main.java file contains two modes. You can uncomment the one you need.
 
 * To Train a New Model:
 
-
-    // In main.java
-    public static void main(String[] args) throws Exception {
-    createModel(); // Trains for 50 epochs and saves to 'model.bin'
-    }
+      // In main.java
+      public static void main(String[] args) throws Exception {
+        test_and_train_std("data/training_data_Pb_RED_3.csv");
+      }
 
 
 * To Test an Existing Model:
@@ -88,13 +87,9 @@ The main.java file contains two modes. You can uncomment the one you need.
 
     // In main.java
     public static void main(String[] args) throws Exception {
-    // Loads 'model.bin' and runs accuracy tests
-    NeuralEngine testEngine = NeuralEngine.loadModel("model.bin");
-    
-        // Loads data to test against
-        float[][] data = ExcelParse.loadData("digit-recognizer/train.csv", 40000);
-        testEngine.test(data);
+      test_model("src/main/resources/models/multiclass_classifier2.bin","data/training_data_Cu3.csv");
     }
+    
 
 
 

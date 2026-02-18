@@ -8,22 +8,22 @@ import java.util.Random;
 public class PhysicsClassifier {
 
     public static void main(String[] args) throws Exception {
-        //test_and_train_std("data/training_data_Pb_RED_3.csv");
-        test_model();
+        //test_and_train_std("data/training_data_Cu3.csv");
+        test_model("src/main/resources/models/multiclass_classifier2.bin","data/training_data_Cu3.csv");
     }
 
 
-    private static void test_model() throws Exception {
+    private static void test_model(String model_path,String test_data) throws Exception {
         // 1. LOAD DATA
         System.out.println("Loading Test Physics Data...");
-        float[][] allData = ExcelParse.loadPhysicsData("data/training_data_Cu3.csv", -1);
+        float[][] allData = ExcelParse.loadPhysicsData(test_data, -1);
         System.out.println("Loaded " + allData.length + " events.");
 
         // 2. SHUFFLE
         System.out.println("Shuffling data...");
         shuffleData(allData);
 
-        NeuralEngine brain = NeuralEngine.loadModel("src/main/resources/models/multiclass_classifier2.bin");
+        NeuralEngine brain = NeuralEngine.loadModel(model_path);
         System.out.println("The input size is : "+brain.INPUT_SIZE);
 
         System.out.println("--- TEST SET (Unseen Data) ---");
@@ -99,7 +99,7 @@ public class PhysicsClassifier {
         brain.test(trainData);
 
         // 8. SAVE
-        brain.saveModel("multiclass_classifier21.bin");
+        brain.saveModel("multiclass_classifier.bin");
 
         // 9. ANALYSIS
         System.out.println("\n========================================");
