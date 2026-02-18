@@ -101,4 +101,4 @@ void SteppingAction::UserSteppingAction(const G4Step* step)
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-}  // namespace B4a
+}  // tensorless_lhc B4a

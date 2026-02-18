@@ -245,4 +245,4 @@ void DetectorConstruction::ConstructSDandField()
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-}  // namespace B4
+}  // tensorless_lhc B4

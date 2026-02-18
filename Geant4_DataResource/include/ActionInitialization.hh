@@ -55,6 +55,6 @@ class ActionInitialization : public G4VUserActionInitialization
     B4::DetectorConstruction* fDetConstruction = nullptr;
 };
 
-}  // namespace B4a
+}  // tensorless_lhc B4a
 
 #endif

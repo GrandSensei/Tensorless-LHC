@@ -94,7 +94,7 @@ inline void EventAction::AddGap(G4double de, G4double dl)
   fTrackLGap += dl;
 }
 
-}  // namespace B4a
+}  // tensorless_lhc B4a
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 #endif

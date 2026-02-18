@@ -63,7 +63,7 @@ class SteppingAction : public G4UserSteppingAction
     EventAction* fEventAction = nullptr;
 };
 
-}  // namespace B4a
+}  // tensorless_lhc B4a
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 

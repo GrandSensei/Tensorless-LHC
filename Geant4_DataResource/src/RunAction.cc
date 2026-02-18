@@ -135,4 +135,4 @@ void RunAction::EndOfRunAction(const G4Run* /*run*/)
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-}  // namespace B4
+}  // tensorless_lhc B4

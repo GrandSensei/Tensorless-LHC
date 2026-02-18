@@ -254,4 +254,4 @@ void EventAction::EndOfEventAction(const G4Event* event)
   }
 }
 
-}  // namespace B4a
+}  // tensorless_lhc B4a

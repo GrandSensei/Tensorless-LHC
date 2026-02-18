@@ -65,4 +65,4 @@ void ActionInitialization::Build() const
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-}  // namespace B4a
+}  // tensorless_lhc B4a

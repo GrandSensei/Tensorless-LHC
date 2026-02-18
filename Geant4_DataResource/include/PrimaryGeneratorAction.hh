@@ -66,7 +66,7 @@ class PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
   void GenerateRandomParticle();
 };
 
-}  // namespace B4
+}  // tensorless_lhc B4
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 

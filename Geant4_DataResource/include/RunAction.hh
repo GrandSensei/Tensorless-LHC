@@ -65,7 +65,7 @@ class RunAction : public G4UserRunAction
     void EndOfRunAction(const G4Run*) override;
 };
 
-}  // namespace B4
+}  // tensorless_lhc B4
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 

@@ -99,7 +99,7 @@ inline const G4VPhysicalVolume* DetectorConstruction::GetGapPV() const
   return fGapPV;
 }
 
-}  // namespace B4
+}  // tensorless_lhc B4
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 

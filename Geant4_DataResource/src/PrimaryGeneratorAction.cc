@@ -192,4 +192,4 @@ PrimaryGeneratorAction::~PrimaryGeneratorAction() {
     fParticleGun->SetParticlePosition(G4ThreeVector(0., 0., zPos));
     fParticleGun->GeneratePrimaryVertex(event);
 }
-} // namespace B4
+} // tensorless_lhc B4
