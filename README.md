@@ -99,7 +99,7 @@ Input (16 features)  →  Hidden 1 (32, ReLU)  →  Hidden 2 (16, ReLU)  →  Ou
 - **Loss:** Cross-entropy + L2 regularisation (λ = 0.0001)
 - **Learning rate:** 0.02–0.05 with ×0.9 decay per 1,000 epochs
 - **Early stopping:** patience = 500 epochs
-- **Dataset:** 80,000 simulated events (64k train / 16k test)
+- **Dataset:** 720,000 simulated events (360k train / 360k test)
 - **Model size:** 3.2 KB — 2,564 parameters
 
 ---
