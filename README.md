@@ -79,7 +79,7 @@ The absorber material is **10 mm Copper** (not the more common Lead). Lead's sho
 Built **from scratch in Java** — no ML libraries, no autograd, no external dependencies. Every forward pass, backprop step, and weight update is hand-coded.
 
 ```
-Input (16 features)  →  Hidden 1 (32, ReLU)  →  Hidden 2 (16, ReLU)  →  Output (4, Softmax)
+Input (16 features)  →  Hidden 1 (48, ReLU)  →  Hidden 2 (32, ReLU)  →  Output (4, Softmax)
 ```
 
 ### Feature Engineering (16 inputs from 10 raw layer readings)
@@ -100,7 +100,7 @@ Input (16 features)  →  Hidden 1 (32, ReLU)  →  Hidden 2 (16, ReLU)  →  Ou
 - **Learning rate:** 0.02–0.05 with ×0.9 decay per 1,000 epochs
 - **Early stopping:** patience = 500 epochs
 - **Dataset:** 720,000 simulated events (360k train / 360k test)
-- **Model size:** 3.2 KB — 2,564 parameters
+- **Model size:** 3.2 KB.
 
 ---
 
