@@ -20,7 +20,7 @@ High-energy physics experiments generate enormous amounts of detector data that 
 3. **Classifies** each event using a custom neural network — built entirely from scratch in Java, no PyTorch or TensorFlow
 4. **Displays** results live on a WebSocket-powered web dashboard
 
-The classifier identifies four particle types — electrons, pions, muons, and gamma rays — based on the energy deposition pattern they leave across 10 calorimeter layers, achieving **82.5% accuracy** with near-zero overfitting.
+The classifier identifies four particle types — electrons, pions, muons, and gamma rays — based on the energy deposition pattern they leave across 10 calorimeter layers, achieving **81.99% accuracy** with near-zero overfitting.
 
 ---
 
